@@ -1,4 +1,8 @@
 {
-  "components": {},
-  "dependencies": {}
+  "components": {
+    "seeds": {}
+  },
+  "dependencies": {
+    "seeds": {}
+  }
 }
