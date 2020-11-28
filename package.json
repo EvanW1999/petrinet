@@ -21,5 +21,8 @@
     "mocha": "^5.2.0",
     "webgme": "git://github.com/webgme/webgme.git#blob_issue"
   },
-  "dependencies": {}
+  "dependencies": {
+    "webgme-bindings": "^1.2.1",
+    "webgme-icore": "^2.0.1"
+  }
 }
