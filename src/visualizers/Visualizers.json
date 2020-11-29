@@ -4,5 +4,11 @@
     "title": "ICore",
     "panel": "panels/ICore/ICorePanel",
     "DEBUG_ONLY": false
+  },
+  {
+    "id": "PetrinetVisualization",
+    "title": "PetrinetVisualization",
+    "panel": "panels/PetrinetVisualization/PetrinetVisualizationPanel",
+    "DEBUG_ONLY": false
   }
 ]

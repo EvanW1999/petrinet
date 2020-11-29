@@ -11,7 +11,15 @@
         "test": "test/plugins/PetrinetCodeGenerator"
       }
     },
-    "visualizers": {},
+    "visualizers": {
+      "PetrinetVisualization": {
+        "src": "panels/PetrinetVisualization/PetrinetVisualizationPanel",
+        "title": "PetrinetVisualization",
+        "panel": "src/visualizers/panels/PetrinetVisualization",
+        "secondary": false,
+        "widget": "src/visualizers/widgets/PetrinetVisualization"
+      }
+    },
     "routers": {}
   },
   "dependencies": {

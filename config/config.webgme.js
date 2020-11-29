@@ -14,6 +14,7 @@ config.seedProjects.basePaths.push(__dirname + '/../src/seeds/Petrinet');
 
 
 config.visualization.panelPaths.push(__dirname + '/../node_modules/webgme-icore/src/visualizers/panels');
+config.visualization.panelPaths.push(__dirname + '/../src/visualizers/panels');
 
 
 config.rest.components['BindingsDocs'] = {

@@ -22,6 +22,7 @@
     "webgme": "git://github.com/webgme/webgme.git#blob_issue"
   },
   "dependencies": {
+    "jointjs": "^3.2.0",
     "webgme-bindings": "^1.2.1",
     "webgme-icore": "^2.0.1"
   }
