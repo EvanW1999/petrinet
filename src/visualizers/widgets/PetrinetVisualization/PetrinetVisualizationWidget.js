@@ -5,7 +5,8 @@
  */
 const TRANSITION_TYPE = "Transitions";
 const PLACES_TYPE = "Places";
-const POSITION = "position";
+const NODE_SOURCE = "src";
+const NODE_DST = "dst";
 
 define([
   "jointjs",
@@ -21,12 +22,11 @@ define([
 
     this._el = container;
     this._client = client;
-    this._componentMap = {};
 
-    this.nodes = {};
     this._initialize();
 
     this._logger.debug("ctor finished");
+    console.log("here");
   }
 
   PetrinetVisualizationWidget.prototype._initialize = function () {
@@ -51,6 +51,8 @@ define([
     this._paper.removeTools();
 
     this._pn = jointjs.shapes.pn;
+    this._componentMap = new Map();
+    this._unaddedLinks = new Array();
 
     // const pReady = new pn.Place({
     //   position: { x: 140, y: 50 },
@@ -78,8 +80,74 @@ define([
     this._el.on("dblclick", function (event) {
       event.stopPropagation();
       event.preventDefault();
-      this.onBackgroundDblClick();
     });
+    const place1 = new this._pn.Place({
+      position: { x: 100, y: 100 },
+      attrs: {
+        ".label": {
+          text: "testy test",
+          fill: "#7c68fc",
+        },
+        ".root": {
+          stroke: "#9586fd",
+          "stroke-width": 3,
+        },
+        ".tokens > circle": {
+          fill: "#7a7e9b",
+        },
+      },
+      tokens: 1,
+    });
+    const trans1 = new this._pn.Transition({
+      position: { x: 50, y: 160 },
+      attrs: {
+        ".label": {
+          text: "tran tran",
+          fill: "#fe854f",
+        },
+        ".root": {
+          fill: "#9586fd",
+          stroke: "#9586fd",
+        },
+      },
+    });
+    const place2 = new this._pn.Place({
+      position: { x: 3000, y: 10000 },
+      attrs: {
+        ".label": {
+          text: "testy test2",
+          fill: "#7c68fc",
+        },
+        ".root": {
+          stroke: "#9586fd",
+          "stroke-width": 3,
+        },
+        ".tokens > circle": {
+          fill: "#7a7e9b",
+        },
+      },
+      tokens: 1,
+    });
+
+    const link = new this._pn.Link({
+      source: {
+        id: place1.id,
+        selector: ".root",
+      },
+      target: {
+        text: "testy test2",
+        selector: ".label",
+      },
+      attrs: {
+        ".connection": {
+          fill: "none",
+          "stroke-linejoin": "round",
+          "stroke-width": "2",
+          stroke: "#4b4a67",
+        },
+      },
+    });
+    // this._graph.addCell([trans1, place1, place2, link]);
   };
 
   PetrinetVisualizationWidget.prototype.onWidgetContainerResize = function (
@@ -95,14 +163,38 @@ define([
 
   // Adding/Removing/Updating items
   PetrinetVisualizationWidget.prototype.addNode = function (desc) {
-    console.log(desc);
     if (desc) {
       var newPnElt;
       //   Add node to a table of nodes
       if (desc.isConnection) {
+        const linkNode = this._client.getNode(desc.id);
+        const sourceId = linkNode.getOwnPointerId(NODE_SOURCE);
+        const dstId = linkNode.getOwnPointerId(NODE_DST);
+        if (this._componentMap.has(sourceId) && this._componentMap.has(dstId)) {
+          newPnElt = new this._pn.Link({
+            source: {
+              id: this._componentMap.get(sourceId).id,
+              selector: ".root",
+            },
+            target: {
+              id: this._componentMap.get(dstId).id,
+              selector: ".root",
+            },
+            attrs: {
+              ".connection": {
+                fill: "none",
+                "stroke-linejoin": "round",
+                "stroke-width": "2",
+                stroke: "#4b4a67",
+              },
+            },
+          });
+        } else {
+          this._unaddedLinks.push(desc);
+        }
       } else if (desc.nodeType == TRANSITION_TYPE) {
         newPnElt = new this._pn.Transition({
-          position: desc.nodePos,
+          position: desc.position,
           attrs: {
             ".label": {
               text: desc.name,
@@ -114,15 +206,37 @@ define([
             },
           },
         });
+      } else if (desc.nodeType == PLACES_TYPE) {
+        newPnElt = new this._pn.Place({
+          position: desc.position,
+          attrs: {
+            ".label": {
+              text: desc.name,
+              fill: "#7c68fc",
+            },
+            ".root": {
+              stroke: "#9586fd",
+              "stroke-width": 3,
+            },
+            ".tokens > circle": {
+              fill: "#7a7e9b",
+            },
+          },
+          tokens: 1,
+        });
+      }
+      if (newPnElt) {
+        this._componentMap.set(desc.id, newPnElt);
         this._graph.addCell([newPnElt]);
-      } else if (desc.nodeType == COMP)
+        for (var i = 0; i < this._unaddedLinks.length; ++i) {
+          this.addNode(this._unaddedLinks.shift());
+        }
+      }
     }
   };
 
   PetrinetVisualizationWidget.prototype.removeNode = function (gmeId) {
-    var desc = this.nodes[gmeId];
     this._el.append('<div>Removing node "' + desc.name + '"</div>');
-    delete this.nodes[gmeId];
   };
 
   PetrinetVisualizationWidget.prototype.updateNode = function (desc) {
