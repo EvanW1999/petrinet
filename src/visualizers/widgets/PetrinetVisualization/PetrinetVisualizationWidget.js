@@ -54,6 +54,10 @@ define([
     this._pn = jointjs.shapes.pn;
     this._componentMap = new Map();
     this._unaddedLinks = new Array();
+    const proxyUpdate = this.updateTransition;
+    this._paper.on("element:pointerdown", (elementView) =>
+      this.fireTransition(elementView.model)
+    );
 
     // Create a dummy header
     this._el.append("<h3>PetrinetVisualization Events:</h3>");
@@ -108,6 +112,7 @@ define([
           this._unaddedLinks.push(desc);
         }
       } else if (desc.nodeType == TRANSITION_TYPE) {
+        console.log(desc.id);
         newPnElt = new this._pn.Transition({
           position: desc.position,
           attrs: {
@@ -136,6 +141,7 @@ define([
             ".tokens > circle": {
               fill: "#7a7e9b",
             },
+            isFirable: true,
           },
           tokens: this._client.getNode(desc.id).getAttribute(NUM_POINTS),
         });
@@ -146,12 +152,104 @@ define([
         for (var i = 0; i < this._unaddedLinks.length; ++i) {
           this.addNode(this._unaddedLinks.shift());
         }
+        this._componentMap.forEach((component, _) => {
+          if (component instanceof this._pn.Transition) {
+            this.updateTransition(component);
+          }
+        });
       }
     }
   };
 
   PetrinetVisualizationWidget.prototype.removeNode = function (gmeId) {
     this._el.append('<div>Removing node "' + desc.name + '"</div>');
+  };
+
+  PetrinetVisualizationWidget.prototype.updateTransition = function (
+    transition
+  ) {
+    const inbound = this._graph.getConnectedLinks(transition, {
+      inbound: true,
+    });
+    var placesBefore = inbound.map(function (link) {
+      return link.getSourceElement();
+    });
+
+    var isFirable = true;
+    transition.attr(".root/fill", "#9586fd");
+    transition.attr("isFirable", true);
+    placesBefore.forEach(function (p) {
+      if (p.get("tokens") === 0) {
+        transition.attr(".root/fill", "#FFFFFF");
+        transition.attr("isFirable", false);
+        isFirable = false;
+      }
+    });
+    console.log("clicked");
+    return isFirable;
+  };
+
+  PetrinetVisualizationWidget.prototype.updateAllTransitions = function () {
+    var noFirableTransitions = true;
+    this._componentMap.forEach((component, _) => {
+      if (component instanceof this._pn.Transition) {
+        if (this.updateTransition(component)) {
+          noFirableTransitions = false;
+        }
+      }
+    });
+    if (noFirableTransitions) {
+      this._client.notifyUser("There are no firable transitions at the moment");
+    }
+  };
+
+  PetrinetVisualizationWidget.prototype.fireTransition = function (transition) {
+    console.log(transition);
+    if (
+      transition instanceof this._pn.Transition &&
+      transition.attr("isFirable")
+    ) {
+      const paper = this._paper;
+      var inbound = this._graph.getConnectedLinks(transition, {
+        inbound: true,
+      });
+      var outbound = this._graph.getConnectedLinks(transition, {
+        outbound: true,
+      });
+
+      var placesBefore = inbound.map(function (link) {
+        return link.getSourceElement();
+      });
+      var placesAfter = outbound.map(function (link) {
+        return link.getTargetElement();
+      });
+
+      placesBefore.forEach(function (p) {
+        p.set("tokens", p.get("tokens") - 1);
+
+        var links = inbound.filter(function (l) {
+          return l.getSourceElement() === p;
+        });
+
+        links.forEach((l) => {
+          var token = jointjs.V("circle", { r: 5, fill: "#feb662" });
+          l.findView(paper).sendToken(token, 300);
+        });
+      });
+
+      placesAfter.forEach(function (p) {
+        var links = outbound.filter(function (l) {
+          return l.getTargetElement() === p;
+        });
+
+        links.forEach((link) => {
+          var token = jointjs.V("circle", { r: 5, fill: "#feb662" });
+          link
+            .findView(paper)
+            .sendToken(token, 300, () => p.set("tokens", p.get("tokens") + 1));
+        });
+      });
+    }
   };
 
   PetrinetVisualizationWidget.prototype.updateNode = function (desc) {
