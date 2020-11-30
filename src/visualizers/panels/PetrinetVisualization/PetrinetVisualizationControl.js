@@ -255,6 +255,13 @@ define([
     });
     this._toolbarItems.push(this.$cbShowConnection);
 
+    this.$btnReset = toolBar.addButton({
+      title: "Reset Simulation",
+      icon: "glyphicon glyphicon-refresh",
+      clickFn: () => this._widget.resetSimulation(),
+    });
+    this._toolbarItems.push(this.$btnReset);
+
     this._toolbarInitialized = true;
   };
 
