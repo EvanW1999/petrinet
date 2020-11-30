@@ -7,6 +7,7 @@ const TRANSITION_TYPE = "Transition";
 const PLACES_TYPE = "Place";
 const NODE_SOURCE = "src";
 const NODE_DST = "dst";
+const NUM_POINTS = "numPoints";
 
 define([
   "jointjs",
@@ -136,7 +137,7 @@ define([
               fill: "#7a7e9b",
             },
           },
-          tokens: 2,
+          tokens: this._client.getNode(desc.id).getAttribute(NUM_POINTS),
         });
       }
       if (newPnElt) {
