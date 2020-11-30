@@ -35,21 +35,18 @@ class PetrinetCodeGenerator(PluginBase):
         self.logger.info(self.root_path)
         self.logger.info(places)
 
-        transInPlaces, transOutPlaces = self.getTransitionPlaces(
+        trans_in_places, trans_out_places = self.getTransitionPlaces(
             arcs, transitions)
-        placeInTrans, placeOutTrans = self.getPlaceTransitions(arcs, places)
-        logger.info(transInPlaces)
-        logger.info(transOutPlaces)
-        logger.info(placeInTrans)
-        logger.info(placeOutTrans)
-        if self.isFreeChoice(transInPlaces, transitions):
-            logger.info("This is a free choice petri net")
-        if self.isStateMachine(transInPlaces, transOutPlaces):
-            logger.info("This is a state machine")
-        if self.isMarkedGraph(placeInTrans, placeOutTrans):
-            logger.info("This is a marked graph")
-        if self.isWorkflowNet(placeInTrans, placeOutTrans, places):
-            logger.info("This is a workflow net")
+        place_in_trans, place_out_trans = self.getPlaceTransitions(
+            arcs, places)
+        if self.isFreeChoice(trans_in_places):
+            self.send_notification('This is a free choice petri net')
+        if self.isStateMachine(trans_in_places, trans_out_places):
+            self.send_notification("This is a state machine")
+        if self.isMarkedGraph(place_in_trans, place_out_trans):
+            self.send_notification("This is a marked graph")
+        if self.isWorkflowNet(place_in_trans, place_out_trans, places):
+            self.send_notification("This is a workflow net")
 
     def getRelativePath(self, path, root_path):
         return path[path.find(root_path) + len(root_path):]
@@ -66,88 +63,88 @@ class PetrinetCodeGenerator(PluginBase):
         return places, transitions, arcs
 
     def getTransitionPlaces(self, arcs, transitions):
-        transInPlaces = {self.core.get_path(
+        trans_in_places = {self.core.get_path(
             trans): [] for trans in transitions}
-        transOutPlaces = {self.core.get_path(
+        trans_out_places = {self.core.get_path(
             trans): [] for trans in transitions}
         for arc in arcs:
             src = self.core.load_pointer(arc, self.SRC_POINTER_NAME)
             dst = self.core.load_pointer(arc, self.DST_POINTER_NAME)
             if self.core.is_instance_of(src, self.META[self.TRANSITION_META_TYPE]):
-                transOutPlaces[self.core.get_path(src)].append(
+                trans_out_places[self.core.get_path(src)].append(
                     self.core.get_path(dst))
             elif self.core.is_instance_of(dst, self.META[self.TRANSITION_META_TYPE]):
-                transInPlaces[self.core.get_path(dst)].append(
+                trans_in_places[self.core.get_path(dst)].append(
                     self.core.get_path(src))
-        return transInPlaces, transOutPlaces
+        return trans_in_places, trans_out_places
 
     def getPlaceTransitions(self, arcs, places):
-        placeInTrans = {self.core.get_path(place): [] for place in places}
-        placeOutTrans = {self.core.get_path(place): [] for place in places}
+        place_in_trans = {self.core.get_path(place): [] for place in places}
+        place_out_trans = {self.core.get_path(place): [] for place in places}
         for arc in arcs:
             src = self.core.load_pointer(arc, self.SRC_POINTER_NAME)
             dst = self.core.load_pointer(arc, self.DST_POINTER_NAME)
             if self.core.is_instance_of(src, self.META[self.PLACE_META_TYPE]):
-                placeOutTrans[self.core.get_path(src)].append(
+                place_out_trans[self.core.get_path(src)].append(
                     self.core.get_path(dst))
             elif self.core.is_instance_of(dst, self.META[self.PLACE_META_TYPE]):
-                placeInTrans[self.core.get_path(dst)].append(
+                place_in_trans[self.core.get_path(dst)].append(
                     self.core.get_path(src))
-        return placeInTrans, placeOutTrans
+        return place_in_trans, place_out_trans
 
-    def getReachablePlaces(self, place, placeInTrans, placeOutTrans):
-        exploredNodes = set([place])
-        reachablePlaces = set([place])
-        self.logger.info(list(reachablePlaces))
+    def getReachablePlaces(self, place, place_in_trans, place_out_trans):
+        explored_nodes = set([place])
+        reachable_places = set([place])
+        self.logger.info(list(reachable_places))
         queue = [place]
         while len(queue) != 0:
-            newEltPath = queue.pop(0)
-            newElt = self.core.load_by_path(
-                self.active_node, self.getRelativePath(newEltPath, self.root_path))
-            if self.core.is_instance_of(newElt, self.META[self.PLACE_META_TYPE]):
-                outTrans = placeOutTrans[newEltPath]
-                for trans in outTrans:
-                    if trans not in exploredNodes:
-                        exploredNodes.add(trans)
+            new_elt_path = queue.pop(0)
+            new_elt = self.core.load_by_path(
+                self.active_node, self.getRelativePath(new_elt_path, self.root_path))
+            if self.core.is_instance_of(new_elt, self.META[self.PLACE_META_TYPE]):
+                out_trans = place_out_trans[new_elt_path]
+                for trans in out_trans:
+                    if trans not in explored_nodes:
+                        explored_nodes.add(trans)
                         queue.append(trans)
-            elif self.core.is_instance_of(newElt, self.META[self.TRANSITION_META_TYPE]):
-                for curPlace, inTrans in placeInTrans.items():
-                    if newEltPath in inTrans and curPlace not in exploredNodes:
-                        exploredNodes.add(curPlace)
-                        reachablePlaces.add(curPlace)
-                        queue.append(curPlace)
-        return reachablePlaces
+            elif self.core.is_instance_of(new_elt, self.META[self.TRANSITION_META_TYPE]):
+                for cur_place, in_trans in place_in_trans.items():
+                    if new_elt_path in in_trans and cur_place not in explored_nodes:
+                        explored_nodes.add(cur_place)
+                        reachable_places.add(cur_place)
+                        queue.append(cur_place)
+        return reachable_places
 
-    def isFreeChoice(self, transInPlaces, transitions):
-        inPlaces = list(transInPlaces.values())
-        return len(inPlaces) == len(set(tuple(inPlaceList) for inPlaceList in inPlaces))
+    def isFreeChoice(self, transInPlaces):
+        in_places = list(transInPlaces.values())
+        return len(in_places) == len(set(tuple(inPlaceList) for inPlaceList in in_places))
 
     def isStateMachine(self, transInPlaces, transOutPlaces):
-        exactlyOneInPlace = all(
-            len(inPlaces) == 1 for inPlaces in transInPlaces.values())
-        exactlyOneOutPlace = all(
-            len(outPlaces) == 1 for outPlaces in transOutPlaces.values())
-        return exactlyOneInPlace and exactlyOneOutPlace
+        exactly_one_in_place = all(
+            len(in_places) == 1 for in_places in transInPlaces.values())
+        exactly_one_out_place = all(
+            len(out_places) == 1 for out_places in transOutPlaces.values())
+        return exactly_one_in_place and exactly_one_out_place
 
-    def isMarkedGraph(self, placeInTrans, placeOutTrans):
-        exactlyOneInTrans = all(
-            len(inTrans) == 1 for inTrans in placeInTrans.values())
-        exactlyOneOutTrans = all(
-            len(outTrans) == 1 for outTrans in placeOutTrans.values())
-        return exactlyOneInTrans and exactlyOneOutTrans
+    def isMarkedGraph(self, place_in_trans, place_out_trans):
+        exactly_one_in_trans = all(
+            len(in_trans) == 1 for in_trans in place_in_trans.values())
+        exactly_one_out_trans = all(
+            len(out_trans) == 1 for out_trans in place_out_trans.values())
+        return exactly_one_in_trans and exactly_one_out_trans
 
-    def isWorkflowNet(self, placeInTrans, placeOutTrans, places):
+    def isWorkflowNet(self, place_in_trans, place_out_trans, places):
         sources = [self.core.get_path(place) for place in places
-                   if len(placeInTrans[self.core.get_path(place)]) == 0]
+                   if len(place_in_trans[self.core.get_path(place)]) == 0]
         sinks = [self.core.get_path(place) for place in places
-                 if len(placeOutTrans[self.core.get_path(place)]) == 0]
+                 if len(place_out_trans[self.core.get_path(place)]) == 0]
         if len(sources) != 1 or len(sinks) != 1:
             return False
-        sourceCanReachAll = len(self.getReachablePlaces(
-            sources[0], placeInTrans, placeOutTrans)) == len(places)
-        allCanReachSink = all(sinks[0] in self.getReachablePlaces(self.core.get_path(place),
-                                                                  placeInTrans, placeOutTrans) for place in places)
-        return sourceCanReachAll and allCanReachSink
+        source_can_reach_all = len(self.getReachablePlaces(
+            sources[0], place_in_trans, place_out_trans)) == len(places)
+        all_can_reach_sink = all(sinks[0] in self.getReachablePlaces(self.core.get_path(place),
+                                                                     place_in_trans, place_out_trans) for place in places)
+        return source_can_reach_all and all_can_reach_sink
 
     TRANSITION_META_TYPE = "Transition"
     PLACE_META_TYPE = "Place"
