@@ -27,7 +27,6 @@ define([
     this._initialize();
 
     this._logger.debug("ctor finished");
-    console.log("here");
   }
 
   PetrinetVisualizationWidget.prototype._initialize = function () {
@@ -112,7 +111,6 @@ define([
           this._unaddedLinks.push(desc);
         }
       } else if (desc.nodeType == TRANSITION_TYPE) {
-        console.log(desc.id);
         newPnElt = new this._pn.Transition({
           position: desc.position,
           attrs: {
@@ -185,7 +183,6 @@ define([
         isFirable = false;
       }
     });
-    console.log("clicked");
     return isFirable;
   };
 
@@ -203,8 +200,19 @@ define([
     }
   };
 
+  PetrinetVisualizationWidget.prototype.resetSimulation = function () {
+    this._componentMap.forEach((component, componentId) => {
+      if (component instanceof this._pn.Place) {
+        component.set(
+          "tokens",
+          this._client.getNode(componentId).getAttribute(NUM_POINTS)
+        );
+      }
+    });
+    this.updateAllTransitions();
+  };
+
   PetrinetVisualizationWidget.prototype.fireTransition = function (transition) {
-    console.log(transition);
     if (
       transition instanceof this._pn.Transition &&
       transition.attr("isFirable")
@@ -249,6 +257,7 @@ define([
             .sendToken(token, 300, () => p.set("tokens", p.get("tokens") + 1));
         });
       });
+      this.updateAllTransitions();
     }
   };
 
