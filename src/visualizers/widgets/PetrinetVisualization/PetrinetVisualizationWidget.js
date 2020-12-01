@@ -241,7 +241,7 @@ define([
 
         links.forEach((l) => {
           var token = jointjs.V("circle", { r: 5, fill: "#feb662" });
-          l.findView(paper).sendToken(token, 300);
+          l.findView(paper).sendToken(token, 200);
         });
       });
 
@@ -252,10 +252,9 @@ define([
 
         links.forEach((link) => {
           var token = jointjs.V("circle", { r: 5, fill: "#feb662" });
-          link
-            .findView(paper)
-            .sendToken(token, 300, () => p.set("tokens", p.get("tokens") + 1));
+          link.findView(paper).sendToken(token, 200);
         });
+        p.set("tokens", p.get("tokens") + 1);
       });
       this.updateAllTransitions();
     }
